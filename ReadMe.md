@@ -1,4 +1,4 @@
-# Welocom 
+# Welcome
 In this repo you can find diffrent project for blogs that i have published 
 
 ## Join to domain
@@ -13,3 +13,7 @@ This is an ansible playbook the connects Linux server to a Windows active Direct
 5. In case you want to use a secure connection, generate a public certificate and copy it to the server from where you are running the ansible playbook. File name and path need to be defined in "input-join-to-domain.yml"
 6. To execute the playbook, run "ansible-playbook -i hosts run-join-to-domain.yml"
     A. Once  execute you will need to enter the password for the domain user that you have defined in the "input-join-to-domain.yml" file.
+
+
+
+**Linkedin profile:**   https://www.linkedin.com/in/davidzbeda
