@@ -5,6 +5,7 @@ In this repo you can find diffrent project for blogs that i have published
 This is an ansible playbook the connects Linux server to a Windows active Directory using secure or none secure LDAP
 
 **Link to the blog:** https://medium.com/@dudu.zbeda_13698/how-to-connect-securely-ldaps-your-linux-server-in-windows-active-directory-aeaf41b66c49
+
 **Steps for running this playbook:**
 1. Create a server that include ansible service. 
 2. Download the playbooks from my personal git.
