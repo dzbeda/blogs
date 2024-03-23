@@ -1,0 +1,63 @@
+// If running this job from Jenkins UI user can specifit the Mlflow server , nodel_name and satge 
+// If using it as a Jenkins file , update the default values 
+pipeline {
+    agent { label 'Agent-llm' }
+	parameters {
+		string(name: 'mlflow_url', defaultValue: 'http://1.1.1.1:1234', description: 'This defines the mlflow url and port. Example: http://x.x.x.x:yyyy',  trim: true)
+		string(name: 'model_name', defaultValue: 'Model', description: 'This defines the model name from which you wish to download the artifacts. ', trim: true) 
+		string(name: 'required_model_state', defaultValue: 'Production', description: 'This defines the model stage, can be None, Staging, Production, Archived.',  trim: true)
+	}
+    environment {
+        def DATE = sh(script: "echo `date +%F-%T`", returnStdout: true).trim()
+		// Minio details 
+		MINIO_SERVER='http://130.1.1.1:9000'
+		// S3 folder for saving lastes model artificats 
+		S3_ARTIFACTS_BUCKET_NAME='model'
+		// S3 backup folder for saving prvious model version 
+		S3_BACKUP_ARTIFACTS_BUCKET_NAME='model-backup'
+		// Foler under workspace on wich the model artifacts will be saved 
+		DESTINATION_DIR='./model
+    }
+    stages {
+			stage('Get model artificat from mlflow server') {
+				steps {
+						sh 'python3 ./ci/download-latest-version.py --mlflow_url ${mlflow_url} --model_name "${model_name}" --required_model_state ${required_model_state}'
+				}
+			}
+			stage('Copy model artificat to S3 server') {
+				steps {
+					withCredentials([usernamePassword(credentialsId: 'minioserver', usernameVariable: 'MINIO_ACCESS_KEY_ID' , passwordVariable: 'MINIO_ACCESS_SECERt_KEY')]) {
+					   sh """
+					   mc alias set minioserver $MINIO_SERVER \$MINIO_ACCESS_KEY_ID \$MINIO_ACCESS_SECERt_KEY
+					   mc cp --recursive $DESTINATION_DIR minioserver/$S3_ARTIFACTS_BUCKET_NAME
+					   """
+					}
+				}
+			}
+			stage('Zip artifacts for backup purposes'){
+				steps {
+                        sh 'zip -r model-${DATE} $DESTINATION_DIR'
+				}
+			}
+			stage('Copy model artifacts for S3 backup') {
+				steps {
+					withCredentials([usernamePassword(credentialsId: 'minioserver', usernameVariable: 'MINIO_ACCESS_KEY_ID' , passwordVariable: 'MINIO_ACCESS_SECERt_KEY')]) {
+					   sh """
+					   mc alias set minioserver $MINIO_SERVER \$MINIO_ACCESS_KEY_ID \$MINIO_ACCESS_SECERt_KEY
+					   mc cp --recursive *.zip minioserver/$S3_BACKUP_ARTIFACTS_BUCKET_NAME
+					   """
+					}
+				}
+			}
+				
+		}
+		post {
+			always {
+				cleanWs()
+				step([$class: 'Mailer', notifyEveryUnstableBuild: false, recipients: 'Dudu.Zbeda@hotmail.cpm', sendToIndividuals: true])
+			}
+			success {
+				echo "New model artifacts were saved on S3"
+			}
+		}
+}
